@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { RegisterBody, RegisterBodyType } from "@/schemaValidations/auth.schema"
-import envConfig from "@/config"
+import authApiRequest from "@/apiRequest/auth"
+import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
+import { useAppContext } from "@/app/appProvider"
 
 export default function RegisterForm() {
   const form = useForm<RegisterBodyType>({
@@ -25,15 +28,47 @@ export default function RegisterForm() {
       confirmPassword: '',
     },
   })
+  const { toast } = useToast()
+  const router = useRouter()
+  const { setIsSessionToken } = useAppContext()
 
   async function onSubmit(values: RegisterBodyType) {
-    await fetch(`${envConfig.NEXT_PUBLIC_API_ENDPOINT}/auth/register`, {
-      body: JSON.stringify(values),
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-    }).then((res) => res.json())
+    try {
+      const result = await authApiRequest.register(values)
+      toast({
+        title: result.payload.message,
+      })
+      await authApiRequest.auth({ sessionToken: result.payload.data.token })
+
+      // set token for nextjs server
+      setIsSessionToken(result.payload.data.token)
+
+      // redirect after successful register
+      router.push('/me')
+
+    } catch (error: any) {
+      const errors = error.payload.errors as {
+        field: string
+        message: string
+      }[]
+      const status = error.status as number
+
+      if (status === 422) {
+        errors.forEach((error) => {
+          form.setError(error.field as 'email' | 'password', {
+            type: 'server',
+            message: error.message
+          })
+        })
+      }
+      else {
+        toast({
+          variant: "destructive",
+          title: 'Error !',
+          description: error.payload.message
+        })
+      }
+    }
   }
 
   return (
@@ -96,3 +131,7 @@ export default function RegisterForm() {
     </Form>
   )
 }
+function setIsSessionToken(token: string) {
+  throw new Error("Function not implemented.")
+}
+

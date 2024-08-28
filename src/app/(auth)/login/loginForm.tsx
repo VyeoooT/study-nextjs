@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema"
-import envConfig from "@/config"
 import { useToast } from "@/components/ui/use-toast"
 import { useAppContext } from "@/app/appProvider"
+import authApiRequest from "@/apiRequest/auth"
+import { useRouter } from "next/navigation"
 
 export default function LoginForm() {
   const { toast } = useToast()
+  const router = useRouter()
   const { setIsSessionToken } = useAppContext()
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
@@ -30,52 +32,17 @@ export default function LoginForm() {
 
   async function onSubmit(values: LoginBodyType) {
     try {
-      const result = await fetch(`${envConfig.NEXT_PUBLIC_API_ENDPOINT}/auth/login`, {
-        body: JSON.stringify(values),
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-      }).then(async (res) => {
-        const payload = await res.json()
-        const data = {
-          status: res.status,
-          payload
-        }
-        
-        if (!res.ok) {
-          throw data
-        }
-        
-        return data
-      })
-
+      const result = await authApiRequest.login(values)
       toast({
         title: result.payload.message,
       })
-      
-      const resultFromNextServer = await fetch('/api/auth', {
-        method: 'POST',
-        body: JSON.stringify(result),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }).then(async (res) => {
-        const payload = await res.json()
-        const data = {
-          status: res.status,
-          payload
-        }
-        
-        if (!res.ok) {
-          throw data
-        }
-        
-        return data
-      })
+      await authApiRequest.auth({ sessionToken: result.payload.data.token })
 
-      // console.log(resultFromNextServer)
-      setIsSessionToken(resultFromNextServer.payload.data.token)
+      // set token for nextjs server
+      setIsSessionToken(result.payload.data.token)
+
+      // redirect after successful login
+      router.push('/me')
 
     } catch (error: any) {
       const errors = error.payload.errors as {
@@ -91,6 +58,8 @@ export default function LoginForm() {
             message: error.message
           })
         })
+      }
+      else {
         toast({
           variant: "destructive",
           title: 'Error !',
