@@ -14,14 +14,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema"
 import { useToast } from "@/components/ui/use-toast"
-import { useAppContext } from "@/app/appProvider"
 import authApiRequest from "@/apiRequest/auth"
 import { useRouter } from "next/navigation"
+import { clientSessionToken } from "@/lib/http"
 
 export default function LoginForm() {
   const { toast } = useToast()
   const router = useRouter()
-  const { setIsSessionToken } = useAppContext()
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
     defaultValues: {
@@ -37,9 +36,6 @@ export default function LoginForm() {
         title: result.payload.message,
       })
       await authApiRequest.auth({ sessionToken: result.payload.data.token })
-
-      // set token for nextjs server
-      setIsSessionToken(result.payload.data.token)
 
       // redirect after successful login
       router.push('/me')

@@ -1,4 +1,4 @@
-import http from "@/http";
+import http from "@/lib/http";
 import { LoginBodyType, LoginResType, RegisterBodyType, RegisterResType } from "@/schemaValidations/auth.schema";
 
 const authApiRequest = {

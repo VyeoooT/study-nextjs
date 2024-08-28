@@ -1,21 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState } from "react";
-
-const AppContext = createContext({
-  IsSessionToken: '',
-  setIsSessionToken: (sessionToken: string) => {},
-})
-
-export const useAppContext = () => {
-  const context = useContext(AppContext)
-
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider')
-  }
-
-  return context
-}
+import { useState } from "react";
+import { clientSessionToken } from "@/lib/http"
 
 export default function AppProvider({
   children,
@@ -24,11 +10,18 @@ export default function AppProvider({
   children:React.ReactNode
   initialSessionToken?: string
 }) {
-  const [IsSessionToken, setIsSessionToken] = useState(initialSessionToken)
+
+  // chay 1 lan duy nhat va chay truoc nhung thang khac
+  useState(() => {
+    // check o moi truong dev
+    if (typeof window != 'undefined') {
+      clientSessionToken.value = initialSessionToken
+    }
+  })
 
   return (
-    <AppContext.Provider value={{ IsSessionToken, setIsSessionToken }}>
+    <>
       {children}
-    </AppContext.Provider>
+    </>
   )
 }

@@ -16,7 +16,6 @@ import { RegisterBody, RegisterBodyType } from "@/schemaValidations/auth.schema"
 import authApiRequest from "@/apiRequest/auth"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import { useAppContext } from "@/app/appProvider"
 
 export default function RegisterForm() {
   const form = useForm<RegisterBodyType>({
@@ -30,7 +29,6 @@ export default function RegisterForm() {
   })
   const { toast } = useToast()
   const router = useRouter()
-  const { setIsSessionToken } = useAppContext()
 
   async function onSubmit(values: RegisterBodyType) {
     try {
@@ -39,9 +37,6 @@ export default function RegisterForm() {
         title: result.payload.message,
       })
       await authApiRequest.auth({ sessionToken: result.payload.data.token })
-
-      // set token for nextjs server
-      setIsSessionToken(result.payload.data.token)
 
       // redirect after successful register
       router.push('/me')

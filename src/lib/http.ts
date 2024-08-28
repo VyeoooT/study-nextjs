@@ -1,6 +1,7 @@
 import envConfig from "@/config";
+import { LoginResType } from "@/schemaValidations/auth.schema";
 
-type CustomOptions = RequestInit & {
+type CustomOptions = Omit<RequestInit, 'method'> & {
   baseUrl?: string | undefined
 }
 
@@ -18,6 +19,7 @@ const request = async <Response>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url:
   const body = options?.body ? JSON.stringify(options.body) : undefined
   const baseHeaders = {
     'Content-Type': 'application/json',
+    Authorization: clientSessionToken.value ? `Bearer ${clientSessionToken.value}` : ''
   }
 
   // neu khong truyen `baseUrl` (hoac baseUrl = undefined) thi lay tu `envConfig.NEXT_PUBLIC_API_ENDPOINT`
@@ -47,10 +49,36 @@ const request = async <Response>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url:
     throw new HttpError(data)
   }
 
+  // xu ly interceptors
+  if (['/auth/login', '/auth/register'].includes(url)) {
+    clientSessionToken.value = (payload as LoginResType).data.token
+  }
+  else if ('/auth/logout'.includes(url)) {
+    clientSessionToken.value = ''
+  }
+
   return data
 }
 
-// 
+// get sessionToken
+class SessionToken {
+  private token = ''
+  get value() {
+    return this.token
+  }
+  set value(token: string) {
+    // neu goi method nay o server thi se bi loi
+    if (typeof window === 'undefined') {
+      throw new Error('Cannot set token on server side')
+    }
+
+    this.token = token
+  }
+}
+
+export const clientSessionToken = new SessionToken()
+
+// create http
 const http = {
 
   // method GET nen minh khong truyen len `body`, nen `Omit body` trong `CustomOptions`
