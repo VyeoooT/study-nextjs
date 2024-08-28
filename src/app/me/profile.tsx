@@ -1,6 +1,7 @@
 'use client'
 
 import accountApiRequest from "@/apiRequest/account"
+import { handleErrorApi } from "@/lib/utils"
 import { useEffect } from "react"
 
 export default function Profile() {
@@ -8,8 +9,14 @@ export default function Profile() {
   
   useEffect(() => {
     const fecthRequest = async () => {
-      const result = await accountApiRequest.meClient()
-      console.log(result)
+      try {
+        const result = await accountApiRequest.meClient()
+        console.log(result)
+      } catch (error) {
+        handleErrorApi({
+          error
+        })
+      }
     }
     fecthRequest()
   }, [])

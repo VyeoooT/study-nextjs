@@ -16,9 +16,11 @@ import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema"
 import { useToast } from "@/components/ui/use-toast"
 import authApiRequest from "@/apiRequest/auth"
 import { useRouter } from "next/navigation"
-import { clientSessionToken } from "@/lib/http"
+import { handleErrorApi } from "@/lib/utils"
+import { useState } from "react"
 
 export default function LoginForm() {
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const { toast } = useToast()
   const router = useRouter()
   const form = useForm<LoginBodyType>({
@@ -30,6 +32,9 @@ export default function LoginForm() {
   })
 
   async function onSubmit(values: LoginBodyType) {
+    if (isLoading) return
+    setIsLoading(true)
+
     try {
       const result = await authApiRequest.login(values)
       toast({
@@ -41,27 +46,13 @@ export default function LoginForm() {
       router.push('/me')
 
     } catch (error: any) {
-      const errors = error.payload.errors as {
-        field: string
-        message: string
-      }[]
-      const status = error.status as number
-
-      if (status === 422) {
-        errors.forEach((error) => {
-          form.setError(error.field as 'email' | 'password', {
-            type: 'server',
-            message: error.message
-          })
-        })
-      }
-      else {
-        toast({
-          variant: "destructive",
-          title: 'Error !',
-          description: error.payload.message
-        })
-      }
+      handleErrorApi({
+        error,
+        setError: form.setError,
+        duration: 3000
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 

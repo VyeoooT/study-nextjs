@@ -16,8 +16,11 @@ import { RegisterBody, RegisterBodyType } from "@/schemaValidations/auth.schema"
 import authApiRequest from "@/apiRequest/auth"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
+import { handleErrorApi } from "@/lib/utils"
+import { useState } from "react"
 
 export default function RegisterForm() {
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const form = useForm<RegisterBodyType>({
     resolver: zodResolver(RegisterBody),
     defaultValues: {
@@ -31,6 +34,9 @@ export default function RegisterForm() {
   const router = useRouter()
 
   async function onSubmit(values: RegisterBodyType) {
+    if (isLoading) return
+    setIsLoading(true)
+
     try {
       const result = await authApiRequest.register(values)
       toast({
@@ -42,27 +48,13 @@ export default function RegisterForm() {
       router.push('/me')
 
     } catch (error: any) {
-      const errors = error.payload.errors as {
-        field: string
-        message: string
-      }[]
-      const status = error.status as number
-
-      if (status === 422) {
-        errors.forEach((error) => {
-          form.setError(error.field as 'email' | 'password', {
-            type: 'server',
-            message: error.message
-          })
-        })
-      }
-      else {
-        toast({
-          variant: "destructive",
-          title: 'Error !',
-          description: error.payload.message
-        })
-      }
+      handleErrorApi({
+        error,
+        setError: form.setError,
+        duration: 3000
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
